@@ -1,5 +1,12 @@
+# Laporan Proyek Machine Learning Terapan Akhir - Hamim Faiz Mahbub
 
 ## Latar Belakang
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/023fe79b-84e0-4477-b92e-24c669e26dc0"/>
+</p>
+
+
 - Di era informasi digital yang melimpah, pengguna seringkali dihadapkan pada information overload, terutama dalam memilih konten hiburan seperti film. Platform streaming dan database film menawarkan ribuan hingga jutaan judul, membuat pengguna kesulitan menemukan film yang benar-benar sesuai dengan preferensi unik mereka. Sistem rekomendasi hadir sebagai solusi untuk mengatasi tantangan ini dengan menyaring dan memprioritaskan item yang paling relevan bagi setiap individu. [1]
 
 - Kemampuan untuk memberikan rekomendasi film yang akurat dan personal tidak hanya meningkatkan pengalaman dan kepuasan pengguna, tetapi juga menjadi strategi bisnis yang vital bagi penyedia layanan. Rekomendasi yang baik dapat meningkatkan engagement pengguna (waktu yang dihabiskan di platform, jumlah film yang ditonton), mendorong loyalitas, dan pada akhirnya meningkatkan pendapatan. [2] Oleh karena itu, pengembangan sistem rekomendasi yang efektif merupakan investasi penting dalam industri hiburan digital.
