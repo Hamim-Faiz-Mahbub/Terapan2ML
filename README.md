@@ -188,6 +188,19 @@ tags_df: Jumlah movieId unik: 1572 (hanya sebagian film yang diberi tag), Jumlah
 
 - Rata-rata rating adalah 3.50 pada skala 0.5-5.0, dengan median juga 3.5. Ini menunjukkan distribusi rating yang cukup terpusat dengan sedikit kecenderungan ke nilai yang lebih tinggi. Standar deviasi 1.04 menunjukkan variasi yang wajar dalam rating.
 
+### Baris dan Kolom Dataframes 
+
+- Bentuk Data movies_df: (9742, 3)
+Movies_df memiliki 9742 baris dengan 3 attribute/kolom
+- Bentuk Data ratings_df: (100836, 4)
+Ratings_df memiliki 100836 baris dengan 4 attribute/kolom
+- Bentuk Data links_df: (9742, 3)
+Dataframe links_df memiliki 9742 dan 3 attribute seperti Movies_df
+- Bentuk Data tags_df: (3683, 4)
+tags_df memiliki 3683 baris dengan 4 attribute
+
+ Informasi dasar bentuk dataframe ini digunakan untuk memberikan gambaran awal ukuran data
+
  ### Pemeriksaan Kualitas Data
 
 
@@ -319,6 +332,41 @@ Tahap ini bertujuan untuk membersihkan, mentransformasi, dan melakukan rekayasa 
         * Indeks DataFrame di-reset. (Sesuai diskusi, `.drop_duplicates(subset=['movieId'])` tidak diterapkan di sini karena diasumsikan `movies_df` sudah unik berdasarkan `movieId` dari tahap EDA).
         * **Output Tahap Ini:** Sampel `movies_for_cbf` dan jumlah film unik yang siap untuk CBF (9742 film).
 * **Hasil Akhir untuk CBF:** DataFrame `movies_for_cbf` berisi fitur konten gabungan yang siap untuk diubah menjadi representasi numerik oleh `TfidfVectorizer`.
+####  Implementasi: TF-IDF dan Pembentukan Matriks Fitur
+
+
+Langkah pertama dalam implementasi CBF adalah mengubah fitur konten tekstual (`feature_soup` yang telah dibuat pada tahap Data Preparation) menjadi representasi numerik yang dapat diproses oleh algoritma. Teknik yang digunakan adalah TF-IDF (Term Frequency-Inverse Document Frequency).
+
+* **Proses:**
+
+  1. **Inisialisasi `TfidfVectorizer`:** Objek `tfidf_vectorizer` dari `sklearn.feature_extraction.text` diinisialisasi. `TfidfVectorizer` akan mengonversi koleksi dokumen teks mentah menjadi matriks fitur TF-IDF.
+
+     * **TF (Term Frequency):** Mengukur seberapa sering sebuah kata (term) muncul dalam sebuah dokumen (dalam kasus ini, `feature_soup` sebuah film).
+
+     * **IDF (Inverse Document Frequency):** Mengukur seberapa penting sebuah kata dalam keseluruhan koleksi dokumen. Kata yang sering muncul di banyak dokumen akan memiliki bobot IDF yang lebih rendah, sedangkan kata yang jarang muncul tetapi spesifik pada beberapa dokumen akan memiliki bobot IDF yang lebih tinggi.
+
+  2. **Penanganan `NaN` (Pencegahan):** Kolom `feature_soup` pada `movies_for_cbf` dipastikan tidak mengandung nilai `NaN` dengan menggantinya menggunakan string kosong (`''`). Ini penting karena `TfidfVectorizer` mengharapkan input berupa string.
+
+  3. **Pembuatan Matriks TF-IDF:** Metode `fit_transform()` dari `tfidf_vectorizer` diterapkan pada kolom `feature_soup`.
+
+     * `fit()`: Mempelajari kosakata (semua token unik dari genre dan tag) dari seluruh `feature_soup` dan menghitung bobot IDF untuk setiap token.
+
+     * `transform()`: Mengubah setiap `feature_soup` film menjadi vektor numerik berdasarkan bobot TF-IDF dari token-token yang ada di dalamnya.
+
+  * Hasil dari proses ini adalah `tfidf_matrix`, sebuah matriks sparse (jarang) di mana setiap baris merepresentasikan satu film dan setiap kolom merepresentasikan satu token (kata/fitur) unik dari kosakata yang dipelajari. Nilai dalam sel matriks adalah bobot TF-IDF dari token tersebut untuk film tersebut.
+
+* **Output Sel :**
+
+  * Pesan: "Menerapkan TfidfVectorizer pada 'feature_soup'"
+
+  * `Bentuk matriks TF-IDF: (9742, 1746)`
+
+  * Pesan: "Matriks TF-IDF (tfidf_matrix) dan objek TfidfVectorizer (tfidf_vectorizer) berhasil dibuat."
+
+* **Penjelasan:**
+
+  * Bentuk matriks `(9742, 1746)` menunjukkan bahwa dari 9742 film yang diproses, telah diekstraksi sebanyak 1.746 fitur kata unik (kombinasi dari semua genre dan tag yang ada setelah diproses). Setiap film kini direpresentasikan sebagai vektor dalam ruang berdimensi tinggi ini. Matriks `tfidf_matrix` ini menjadi dasar untuk menghitung kemiripan antar film. Objek `tfidf_vectorizer` yang telah di-"fit" juga disimpan karena berisi informasi kosakata dan bobot IDF yang dapat digunakan kembali jika ada data baru.
+
 
 ### Persiapan Data untuk Collaborative Filtering
 
@@ -361,47 +409,14 @@ Proses CBF umumnya melibatkan langkah-langkah berikut:
 
 Dalam proyek ini, kita akan fokus pada kemiripan item-item, di mana fitur konten utama adalah gabungan dari genre dan tag film.
 
-####  Implementasi: TF-IDF dan Pembentukan Matriks Fitur
 
-
-Langkah pertama dalam implementasi CBF adalah mengubah fitur konten tekstual (`feature_soup` yang telah dibuat pada tahap Data Preparation) menjadi representasi numerik yang dapat diproses oleh algoritma. Teknik yang digunakan adalah TF-IDF (Term Frequency-Inverse Document Frequency).
-
-* **Proses:**
-
-  1. **Inisialisasi `TfidfVectorizer`:** Objek `tfidf_vectorizer` dari `sklearn.feature_extraction.text` diinisialisasi. `TfidfVectorizer` akan mengonversi koleksi dokumen teks mentah menjadi matriks fitur TF-IDF.
-
-     * **TF (Term Frequency):** Mengukur seberapa sering sebuah kata (term) muncul dalam sebuah dokumen (dalam kasus ini, `feature_soup` sebuah film).
-
-     * **IDF (Inverse Document Frequency):** Mengukur seberapa penting sebuah kata dalam keseluruhan koleksi dokumen. Kata yang sering muncul di banyak dokumen akan memiliki bobot IDF yang lebih rendah, sedangkan kata yang jarang muncul tetapi spesifik pada beberapa dokumen akan memiliki bobot IDF yang lebih tinggi.
-
-  2. **Penanganan `NaN` (Pencegahan):** Kolom `feature_soup` pada `movies_for_cbf` dipastikan tidak mengandung nilai `NaN` dengan menggantinya menggunakan string kosong (`''`). Ini penting karena `TfidfVectorizer` mengharapkan input berupa string.
-
-  3. **Pembuatan Matriks TF-IDF:** Metode `fit_transform()` dari `tfidf_vectorizer` diterapkan pada kolom `feature_soup`.
-
-     * `fit()`: Mempelajari kosakata (semua token unik dari genre dan tag) dari seluruh `feature_soup` dan menghitung bobot IDF untuk setiap token.
-
-     * `transform()`: Mengubah setiap `feature_soup` film menjadi vektor numerik berdasarkan bobot TF-IDF dari token-token yang ada di dalamnya.
-
-  * Hasil dari proses ini adalah `tfidf_matrix`, sebuah matriks sparse (jarang) di mana setiap baris merepresentasikan satu film dan setiap kolom merepresentasikan satu token (kata/fitur) unik dari kosakata yang dipelajari. Nilai dalam sel matriks adalah bobot TF-IDF dari token tersebut untuk film tersebut.
-
-* **Output Sel :**
-
-  * Pesan: "Menerapkan TfidfVectorizer pada 'feature_soup'"
-
-  * `Bentuk matriks TF-IDF: (9742, 1746)`
-
-  * Pesan: "Matriks TF-IDF (tfidf_matrix) dan objek TfidfVectorizer (tfidf_vectorizer) berhasil dibuat."
-
-* **Penjelasan:**
-
-  * Bentuk matriks `(9742, 1746)` menunjukkan bahwa dari 9742 film yang diproses, telah diekstraksi sebanyak 1.746 fitur kata unik (kombinasi dari semua genre dan tag yang ada setelah diproses). Setiap film kini direpresentasikan sebagai vektor dalam ruang berdimensi tinggi ini. Matriks `tfidf_matrix` ini menjadi dasar untuk menghitung kemiripan antar film. Objek `tfidf_vectorizer` yang telah di-"fit" juga disimpan karena berisi informasi kosakata dan bobot IDF yang dapat digunakan kembali jika ada data baru.
 
 #### Implementasi: Perhitungan Kemiripan dan Fungsi Rekomendasi
 
 
 Setelah mendapatkan representasi vektor TF-IDF untuk setiap film, langkah selanjutnya adalah menghitung kemiripan antar film dan membuat fungsi untuk menghasilkan rekomendasi.
 
-* **Perhitungan Matriks Kemiripan Kosinus (Dilakukan di Cell 53 untuk evaluasi, tetapi konsepnya relevan di sini):**
+* **Perhitungan Matriks Kemiripan Kosinus :**
 
   * **Metode:** `cosine_similarity` dari `sklearn.metrics.pairwise` digunakan untuk menghitung kemiripan kosinus antara semua pasangan vektor film dalam `tfidf_matrix`.
 
@@ -479,7 +494,7 @@ Collaborative Filtering (CF) adalah pendekatan yang merekomendasikan item kepada
 Ada dua jenis utama CF:
 
 * **Memory-Based CF:** Mencari pengguna (user-based) atau item (item-based) yang mirip berdasarkan pola rating dan kemudian membuat prediksi.
-* **Model-Based CF:** Membangun model prediktif dari data rating untuk memperkirakan rating pengguna terhadap item yang belum dinilai. **Singular Value Decomposition (SVD)** adalah salah satu teknik faktorisasi matriks yang populer untuk model-based CF. SVD bekerja dengan menguraikan matriks interaksi pengguna-item (matriks rating R yang berukuran m pengguna x n item) menjadi produk dari tiga matriks: $R \approx U \Sigma V^T$. Dalam konteks rekomendasi, varian SVD (seperti yang diimplementasikan di library `Surprise`) sering digunakan untuk mempelajari vektor faktor laten (fitur tersembunyi) untuk setiap pengguna (P) dan setiap item (Q). Rating prediksi $\hat{r}_{ui}$ untuk pengguna $u$ dan item $i$ kemudian dihitung sebagai produk titik dari vektor faktor laten mereka: $\hat{r}_{ui} = q_i^T p_u$. Model ini dilatih dengan meminimalkan error prediksi pada rating yang diketahui.
+* **Model-Based CF:** Membangun model prediktif dari data rating untuk memperkirakan rating pengguna terhadap item yang belum dinilai. **Singular Value Decomposition (SVD)** adalah salah satu teknik faktorisasi matriks yang populer untuk model-based CF. SVD bekerja dengan menguraikan matriks interaksi pengguna-item (matriks rating R yang berukuran m pengguna x n item) menjadi produk dari tiga matriks: $R \approx U \Sigma V^T$. Dalam konteks rekomendasi, varian SVD (seperti yang diimplementasikan di library `Surprise`) sering digunakan untuk mempelajari vektor faktor laten (fitur tersembunyi) untuk setiap pengguna (P) dan setiap item (Q). Rating prediksi $\hat{r}_{ui}$ untuk pengguna u$ dan item $i$ kemudian dihitung sebagai produk titik dari vektor faktor laten mereka: $\hat{r}_{ui} = q_i^T p_u$. Model ini dilatih dengan meminimalkan error prediksi pada rating yang diketahui.
 
 #### Implementasi: Persiapan Data dan Model SVD Baseline
 
