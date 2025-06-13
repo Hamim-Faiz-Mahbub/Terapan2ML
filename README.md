@@ -39,7 +39,7 @@ Proyek ini memiliki tujuan-tujuan berikut:
 
 - Mengimplementasikan model Collaborative Filtering (CF) menggunakan algoritma Singular Value Decomposition (SVD) dari library Surprise, termasuk melakukan hyperparameter tuning menggunakan GridSearchCV untuk optimasi.
 
-- Mengevaluasi kinerja kedua model menggunakan metrik kuantitatif (RMSE, MAE, Precision@k, Recall@k untuk CF; Cosine Similarity untuk CBF) dan analisis kualitatif terhadap contoh rekomendasi yang dihasilkan.
+- Mengevaluasi kinerja kedua model menggunakan metrik kuantitatif (RMSE, MAE, Precision@k, Recall@k untuk CF; Precision untuk CBF) dan analisis kualitatif terhadap contoh rekomendasi yang dihasilkan.
 
 - Menganalisis dan membandingkan hasil dari kedua pendekatan, serta mendiskusikan kelebihan dan kekurangan masing-masing dalam konteks proyek ini.
 
@@ -70,7 +70,7 @@ Collaborative Filtering (CF): Menggunakan library Surprise dan algoritma SVD. Me
 
 - Evaluasi Model (Evaluation):
 
-CBF: Evaluasi kualitatif dengan menganalisis contoh rekomendasi dan skor cosine_similarity. Menjelaskan cara kerja Cosine Similarity.
+CBF: Mengevaluasi relevansi rekomendasi menggunakan metrik Precision berdasarkan kesamaan genre antara film input dan film yang direkomendasikan.
 
 CF: Mengevaluasi model SVD (baseline dan tuned) menggunakan metrik RMSE dan MAE. Mengevaluasi kualitas rekomendasi top-N menggunakan Precision@k dan Recall@k. Menjelaskan cara kerja metrik RMSE, MAE, Precision@k, dan Recall@k, termasuk formulanya.
 
@@ -541,15 +541,15 @@ Ada dua jenis utama CF:
 * **Output Sel:**
     * Pesan progres seperti "Memulai GridSearchCV..." dan "GridSearchCV selesai."
     * Hasil terbaik yang ditemukan oleh `GridSearchCV` untuk setiap metrik:
-        * `RMSE terbaik dari GridSearchCV: 0.8702`
+        * `RMSE terbaik dari GridSearchCV: 0.8704`
         * `Parameter terbaik untuk RMSE: {'n_factors': 100, 'n_epochs': 30, 'lr_all': 0.005, 'reg_all': 0.06}`
-        * `MAE terbaik dari GridSearchCV: 0.6690`
+        * `MAE terbaik dari GridSearchCV: 0.6693`
         * `Parameter terbaik untuk MAE: {'n_factors': 100, 'n_epochs': 30, 'lr_all': 0.005, 'reg_all': 0.06}`
 * **Interpretasi Output:**
     * `GridSearchCV` telah berhasil mengeksplorasi berbagai kombinasi hiperparameter dan menemukan set parameter yang menghasilkan skor RMSE dan MAE terbaik selama proses cross-validation.
-    * Terlihat bahwa parameter terbaik untuk meminimalkan RMSE (0.8702) adalah dengan `n_factors=100`, `n_epochs=30`, `lr_all=0.005`, dan `reg_all=0.06`.
-    * Sedangkan parameter terbaik untuk meminimalkan MAE (0.6690) dengan parameter sama.
-    * Hasil RMSE terbaik dari GridSearchCV (0.8702) sedikit lebih rendah dibandingkan RMSE model baseline (0.8710), yang mengindikasikan bahwa *hyperparameter tuning* berpotensi memberikan perbaikan pada performa model.
+    * Terlihat bahwa parameter terbaik untuk meminimalkan RMSE (0.8704) adalah dengan `n_factors=100`, `n_epochs=30`, `lr_all=0.005`, dan `reg_all=0.06`.
+    * Sedangkan parameter terbaik untuk meminimalkan MAE (0.6693) dengan parameter sama.
+    * Hasil RMSE terbaik dari GridSearchCV (0.8704) sedikit lebih rendah dibandingkan RMSE model baseline (0.8710), yang mengindikasikan bahwa *hyperparameter tuning* berpotensi memberikan perbaikan pada performa model.
 
 #### Implementasi: Model SVD Tuned dan Fungsi Rekomendasi
 
@@ -620,9 +620,13 @@ Tahap evaluasi bertujuan untuk mengukur dan menganalisis kinerja dari model-mode
 ### Metrik Evaluasi yang Digunakan
 Pemilihan metrik evaluasi yang tepat sangat penting untuk menilai aspek-aspek berbeda dari performa sistem rekomendasi. Penjelasan detail mengenai definisi, cara kerja, dan formula untuk setiap metrik disajikan dalam dokumen terpisah (`recsys_metrics_explanation` atau dapat diintegrasikan di sini). Metrik utama yang digunakan adalah:
 
-#### Cosine Similarity (untuk CBF)
-* **Penggunaan:** Mengukur kemiripan konten antar film berdasarkan vektor TF-IDF dari `feature_soup`. Skor yang lebih tinggi (mendekati 1) menunjukkan kemiripan yang lebih besar.
-* **Formula:** $$\cos(\theta) = \frac{A \cdot B}{\|A\| \|B\|}$$
+#### Precision (untuk CBF)
+* **Penggunaan:** Mengukur proporsi rekomendasi yang relevan berdasarkan kesamaan genre. Nilai lebih tinggi lebih baik.
+* **Formula:** $$\mathrm{Precision} = \frac{\mathrm{True\ Positives}}{\mathrm{True\ Positives} + \mathrm{False\ Positives}}$$  
+
+Di mana:  
+- **True Positives (TP)** = Jumlah item yang direkomendasikan *dan* memang relevan.  
+- **False Positives (FP)** = Jumlah item yang direkomendasikan tetapi tidak relevan.  
 
 #### RMSE (Root Mean Squared Error) (untuk CF)
 * **Penggunaan:** Mengukur rata-rata besarnya error prediksi rating, dengan memberikan bobot lebih pada error yang besar. Nilai lebih rendah lebih baik.
@@ -635,26 +639,38 @@ Pemilihan metrik evaluasi yang tepat sangat penting untuk menilai aspek-aspek be
 #### Precision@k dan Recall@k (untuk CF Top-N)
 * **Penggunaan:** Mengevaluasi kualitas daftar N item teratas yang direkomendasikan. Item dianggap relevan jika rating aktualnya pada `testset` $\ge 4.0$.
 * **Precision@k:** Proporsi item relevan dari `k` item teratas yang direkomendasikan.
-    * **Formula:** $$\text{Precision@k} = \frac{\text{Jumlah item relevan & direkomendasikan di top-k}}{k}$$
+    * **Formula:**  $$\mathrm{Precision@k} = \frac{\bigl|\mathrm{Recommended}_k \cap \mathrm{Relevant}\bigr|}{k}$$
 * **Recall@k:** Proporsi item relevan yang berhasil direkomendasikan dari semua item yang relevan bagi pengguna (di `testset`).
-    * **Formula:** $$\text{Recall@k} = \frac{\text{Jumlah item relevan & direkomendasikan di top-k}}{\text{Total item relevan untuk pengguna di testset}}$$
+    * **Formula:** $$\mathrm{Recall@k} = \frac{\bigl|\mathrm{Recommended}_k \cap \mathrm{Relevant}\bigr|}{\bigl|\mathrm{Relevant}\bigr|}$$
+
 
 ### Hasil Evaluasi Model CBF
 
-Evaluasi model CBF dilakukan secara kualitatif dengan menganalisis contoh rekomendasi dan skor kemiripan kosinus yang dihasilkan.
+- Evaluasi CBF merupakan proses untuk menilai kinerja sistem rekomendasi berbasis konten dalam memberikan rekomendasi yang relevan kepada pengguna. Pada proyek ini, sistem CBF bekerja dengan cara menganalisis atribut konten (genre dan tag) dari sebuah film yang dijadikan input (seed), lalu merekomendasikan film lain dengan atribut konten yang serupa. Tujuan evaluasi ini adalah untuk mengukur seberapa baik sistem dapat memberikan rekomendasi yang tepat berdasarkan kesamaan fitur.
 
-* **Perhitungan Matriks Kemiripan Kosinus Global:**
-    * Matriks `cosine_sim_df_eval` berukuran (9742, 9742) berhasil dibuat, menunjukkan skor kemiripan antara setiap pasang film dalam dataset.
-    * Sampel 5x5 dari matriks ini menunjukkan nilai diagonal 1.0 (kemiripan sempurna film dengan dirinya sendiri) dan nilai non-diagonal yang merepresentasikan kemiripan konten. Skor yang lebih tinggi menandakan kemiripan yang lebih besar.
-* **Pengujian Kualitatif Rekomendasi untuk "Kung Fu Panda (2008)" :**
-    * **Feature Soup Asli untuk "Kung Fu Panda (2008)":** `action animation children comedy imax` (berdasarkan output pengujian Anda)
-    * **Top 5 Rekomendasi CBF (dengan Skor Kemiripan, dari output pengujian Anda di chat):**
-        1. Happy Feet Two (2011) - Feature Soup: `animation children comedy imax` - Skor: 0.943
-        2. Despicable Me 2 (2013) - Feature Soup: `animation children comedy imax` - Skor: 0.943
-        3. Madagascar: Escape 2 Africa (2008) - Feature Soup: `action adventure animation children comedy imax` - Skor: 0.935
-        4. Kung Fu Panda 2 (2011) - Feature Soup: `action adventure animation children comedy imax` - Skor: 0.935
-        5. Open Season (2006) - Feature Soup: `adventure animation children comedy imax` - Skor: 0.876
-    * **Analisis :** Rekomendasi untuk "Kung Fu Panda (2008)" juga menunjukkan relevansi konten yang sangat tinggi. Skor kemiripan yang dihasilkan sangat tinggi (semua di atas 0.87), menandakan kesamaan konten yang kuat. "Kung Fu Panda 2" sebagai sekuel langsung memiliki skor kemiripan yang tinggi (0.935). Film animasi lain dengan elemen komedi, anak-anak, dan imax juga direkomendasikan dengan skor tinggi, yang sangat sesuai dengan profil konten film input. Ini kembali menunjukkan kemampuan model CBF untuk menemukan item dengan karakteristik konten yang sangat serupa.
+- Fungsi yang digunakan untuk mengukur relevansi rekomendasi CBF adalah metrik Presisi (Precision). Dalam konteks ini, presisi mengukur seberapa banyak dari film yang direkomendasikan benar-benar relevan dengan film input. Sebuah film rekomendasi dianggap relevan (True Positive) jika memiliki minimal satu genre yang sama dengan film input.
+
+Untuk pengujian, kita menggunakan film "Kung Fu Panda (2008)" sebagai input. Film ini memiliki genre: Animation, Adventure, Children, Comedy. Berikut adalah hasil evaluasi presisi untuk 10 rekomendasi teratas (Precision@10):
+
+| Judul Film                                 | Genre                                                       | Hasil Presisi |
+|--------------------------------------------|-------------------------------------------------------------|---------------|
+| Happy Feet Two (2011)                      | Animation, Children, Comedy, IMAX                           | TRUE          |
+| Despicable Me 2 (2013)                     | Animation, Children, Comedy, IMAX                           | TRUE          |
+| Madagascar: Escape 2 Africa (2008)         | Action, Adventure, Animation, Children, Comedy, IMAX        | TRUE          |
+| Kung Fu Panda 2 (2011)                     | Action, Adventure, Animation, Children, Comedy, IMAX        | TRUE          |
+| Open Season (2006)                         | Adventure, Animation, Children, Comedy, IMAX                | TRUE          |
+| Shrek Forever After (2010)                 | Adventure, Animation, Children, Comedy, Fantasy, IMAX       | TRUE          |
+| Monsters vs. Aliens (2009)                 | Action, Animation, Children, Comedy, Sci‑Fi                 | TRUE          |
+| How to Train Your Dragon (2010)            | Adventure, Animation, Children, Fantasy, IMAX               | TRUE          |
+| Ice Age: Dawn of the Dinosaurs (2009)      | Action, Adventure, Animation, Children, Comedy, Romance     | TRUE          |
+| Ice Age: Continental Drift (2012)          | Adventure, Animation, Comedy                                | TRUE          |
+
+#### Analisis
+- True Positives: 10 (Semua film yang direkomendasikan memiliki minimal satu genre yang sama, seperti 'Animation' atau 'Comedy').
+- False Positives: 0
+- Precision@10 = 10 / (10 + 0) = 1.0 (100%)
+
+Skor presisi 100% menunjukkan bahwa model CBF sangat efektif dan konsisten dalam menjaga relevansi konten. Semua film yang direkomendasikan untuk "Kung Fu Panda (2008)" berbagi setidaknya satu genre utama, yang membuktikan bahwa model berhasil mengidentifikasi dan memprioritaskan item berdasarkan kesamaan fitur yang telah ditentukan (feature_soup).
 
 ### Hasil Evaluasi Model CF
 
@@ -669,7 +685,7 @@ Evaluasi model CF (SVD) dilakukan menggunakan metrik prediksi rating (RMSE dan M
         * MAE = 0.6672
     * **Interpretasi:**
         * Kedua model (baseline dan tuned) menunjukkan performa yang baik dalam memprediksi rating, dengan rata-rata kesalahan prediksi kurang dari 1 poin rating pada skala 0.5-5.0.
-        * Proses *hyperparameter tuning* memberikan perbaikan yang lebih terlihat pada *test split* ini dibandingkan interpretasi sebelumnya. RMSE turun dari 0.8710 menjadi 0.8690, dan MAE turun dari 0.6681 menjadi 0.6672. Ini menunjukkan bahwa parameter yang ditemukan melalui `GridSearchCV` (RMSE terbaik pada CV: 0.8702 dengan parameter yang sedikit berbeda) berhasil meningkatkan akurasi prediksi model SVD.
+        * Proses *hyperparameter tuning* memberikan perbaikan yang lebih terlihat pada *test split* ini dibandingkan interpretasi sebelumnya. RMSE turun dari 0.8710 menjadi 0.8690, dan MAE turun dari 0.6681 menjadi 0.6672. Ini menunjukkan bahwa parameter yang ditemukan melalui `GridSearchCV` (RMSE terbaik pada CV: 0.8704 dengan parameter yang sedikit berbeda) berhasil meningkatkan akurasi prediksi model SVD.
 
 * **Metrik Peringkat Top-N (CF - Model Tuned):**
     * (Menggunakan k=10 dan rating threshold relevansi >= 4.0 pada `testset`)
@@ -681,18 +697,18 @@ Evaluasi model CF (SVD) dilakukan menggunakan metrik prediksi rating (RMSE dan M
 
 ### Perbandingan Kinerja Model
 
-| Fitur Perbandingan         | Content-Based Filtering (CBF)                                  | Collaborative Filtering (CF - SVD Tuned)                       |
-| :------------------------- | :------------------------------------------------------------- | :------------------------------------------------------------- |
-| **Input Utama** | Fitur konten film (genre, tag)                                 | Matriks interaksi pengguna-item (rating)                       |
-| **Metrik Utama** | Cosine Similarity (kualitatif untuk relevansi konten)          | RMSE, MAE (akurasi prediksi rating), Precision@k, Recall@k (kualitas peringkat) |
-| **Hasil Kuantitatif** | Skor kemiripan tinggi untuk item serupa ( >0.87 untuk rekomendasi "Kung Fu Panda") | RMSE ≈ 0.8690, MAE ≈ 0.6672, P@10 ≈ 0.5656, R@10 ≈ 0.6668        |
-| **Interpretasi Rekomendasi** | Mudah dijelaskan (berdasarkan kesamaan genre/tag)              | Lebih sulit dijelaskan (berdasarkan pola preferensi laten)       |
-| **Serendipity** | Rendah (cenderung merekomendasikan item yang sangat mirip)       | Potensi lebih tinggi (dapat menemukan item lintas genre)        |
-| **Penanganan *Cold-Start*** | Baik untuk *item cold-start* (jika item baru punya metadata)      | Buruk untuk *user cold-start* dan *item cold-start* |
-| **Ketergantungan Data** | Kualitas metadata konten                                       | Kuantitas dan kualitas data rating (rentan *sparsity*)         |
+| Fitur                       | Content‑Based Filtering (CBF)                      | Collaborative Filtering (CF - SVD Tuned)        |
+|-----------------------------|----------------------------------------------------|-------------------------------------------------|
+| **Input Utama**             | Fitur konten film (genre, tag)                     | Matriks interaksi pengguna‑item (rating)        |
+| **Metrik Utama**            | Precision (berdasarkan relevansi genre)            | RMSE, MAE, Precision@k, Recall@k                |
+| **Hasil Kuantitatif**       | Precision@10 = 1.0 (100%) untuk kasus uji          | RMSE ≈ 0.8690, P@10 ≈ 0.5656                    |
+| **Interpretasi Rekomendasi**| Mudah dijelaskan (berdasarkan kesamaan genre/tag)  | Lebih sulit dijelaskan (berdasarkan pola laten) |
+| **Serendipity**             | Rendah (cenderung rekomendasi sangat mirip)        | Potensi lebih tinggi (lintas genre)             |
+| **Penanganan Cold‑Start**   | Baik untuk item cold‑start (ada metadata)          | Buruk untuk user dan item cold‑start            |
+| **Ketergantungan Data**     | Kualitas metadata konten                           | Kuantitas & kualitas data rating (sparsity)     |
 
 * **Analisis:**
-    * CBF menghasilkan rekomendasi yang sangat relevan secara konten, seperti yang ditunjukkan  "Kung Fu Panda". Namun, ini bisa membatasi penemuan item baru yang berbeda secara signifikan.
+    * CBF terbukti sangat akurat dalam menghasilkan rekomendasi yang relevan secara konten, divalidasi oleh skor Presisi 100%. Namun, ini membatasi penemuan item baru yang berbeda.
     * CF (SVD) menunjukkan akurasi prediksi rating yang baik (RMSE ~0.8690) dan mampu menghasilkan daftar rekomendasi top-N yang relevan (P@10 ~0.56, R@10 ~0.67). Model ini berpotensi memberikan rekomendasi yang lebih beragam.
     * Perbaikan dari *hyperparameter tuning* pada CF (SVD) memberikan peningkatan yang lebih jelas pada *test split* ini dibandingkan interpretasi sebelumnya, menunjukkan manfaat dari proses optimasi.
     * Kedua model memiliki kekuatan komplementer. CBF baik untuk menjelaskan rekomendasi dan menangani item baru, sementara CF baik dalam menangkap preferensi implisit dan memberikan rekomendasi yang lebih beragam.
@@ -703,7 +719,7 @@ Evaluasi model CF (SVD) dilakukan menggunakan metrik prediksi rating (RMSE dan M
 Proyek ini telah berhasil mengembangkan dan mengevaluasi dua pendekatan utama dalam sistem rekomendasi film: Content-Based Filtering (CBF) dan Collaborative Filtering (CF) menggunakan algoritma Singular Value Decomposition (SVD).
 1.  **Pemahaman Data:** EDA yang komprehensif mengungkap karakteristik dataset MovieLens, termasuk kualitas data yang baik, distribusi rating yang cenderung positif, dominasi genre tertentu, variasi tag yang kaya, dan adanya *data sparsity*.
 2.  **Persiapan Data:** Data telah berhasil dibersihkan dan ditransformasi. Untuk CBF, `feature_soup` dari genre dan tag dibuat. Untuk CF, data rating disiapkan untuk library `Surprise`.
-3.  **Kinerja CBF:** Model CBF (TF-IDF & Cosine Similarity) menghasilkan rekomendasi yang relevan secara konten, divalidasi dengan skor kemiripan tinggi untuk film dengan fitur serupa (misalnya, skor >0.87 untuk rekomendasi "Kung Fu Panda").
+3.  **Kinerja CBF:** Model CBF (TF-IDF & Cosine Similarity) menghasilkan rekomendasi yang sangat relevan secara konten, divalidasi dengan metrik Precision yang mencapai 100% pada kasus uji, menunjukkan konsistensi yang tinggi.
 4.  **Kinerja CF (SVD):** Model SVD menunjukkan performa prediksi rating yang baik (RMSE baseline 0.8710, RMSE tuned 0.8690). Evaluasi peringkat top-N (P@10 ≈ 0.5656, R@10 ≈ 0.6668) mengindikasikan kemampuan model untuk menyajikan rekomendasi yang relevan.
 5.  **Perbandingan:** CBF unggul dalam transparansi dan *item cold-start*, sementara CF lebih baik dalam *serendipity* meskipun rentan *cold-start* pengguna/item dan *sparsity*.
 
@@ -713,11 +729,11 @@ Model yang dievaluasi memberikan dampak signifikan terhadap pemahaman bisnis dan
 
 #### Jawaban terhadap Pernyataan Masalah
 1.  **Bagaimana cara efektif menyarankan film berdasarkan konten (genre dan tag)?**
-    * **Jawaban:** Model CBF yang diimplementasikan menggunakan TF-IDF pada `feature_soup` (gabungan genre dan tag) dan Cosine Similarity terbukti efektif. Contoh rekomendasi untuk "Kung Fu Panda (2008)" menghasilkan film-film animasi dengan genre serupa dan skor kemiripan yang tinggi (di atas 0.87), menunjukkan bahwa pendekatan ini berhasil menangkap kesamaan konten.
+    * **Jawaban:** Model CBF yang diimplementasikan menggunakan TF-IDF dan Cosine Similarity terbukti efektif. Efektivitas ini diukur menggunakan metrik Precision berbasis kesamaan genre. Pada kasus uji dengan film "Kung Fu Panda (2008)", model mencapai Precision 100%, yang berarti seluruh 10 rekomendasi teratas memiliki genre yang relevan dengan film input. Ini membuktikan bahwa pendekatan ini berhasil menangkap dan merekomendasikan film berdasarkan kesamaan konten secara akurat.
 2.  **Bagaimana cara memanfaatkan data rating historis untuk rekomendasi?**
     * **Jawaban:** Model CF dengan algoritma SVD berhasil memanfaatkan data rating historis. Dengan mempelajari pola rating dari 610 pengguna terhadap 9724 film, model mampu memprediksi rating untuk film yang belum ditonton pengguna dan menghasilkan rekomendasi yang dipersonalisasi, seperti yang ditunjukkan pada contoh User 46.
 3.  **Pendekatan mana (CBF vs CF) yang lebih akurat/relevan untuk dataset ini?**
-    * **Jawaban:** Kedua pendekatan memiliki keunggulan masing-masing. CBF sangat relevan dari segi konten (skor kemiripan tinggi). CF (SVD tuned) menunjukkan akurasi prediksi rating yang baik (RMSE ≈ 0.8690) dan kualitas peringkat yang layak (P@10 ≈ 0.5656, R@10 ≈ 0.6668). CF lebih unggul dalam potensi *serendipity* dan tidak memerlukan metadata konten yang detail, namun CBF lebih mudah diinterpretasikan. "Lebih baik" akan tergantung pada tujuan spesifik (misalnya, akurasi prediksi rating vs. relevansi konten vs. penemuan baru).
+    * **Jawaban:** Kedua pendekatan memiliki keunggulan masing-masing. CBF sangat relevan dan konsisten dari segi konten, yang divalidasi dengan skor Precision 100% pada kasus uji. Di sisi lain, CF (SVD tuned) menunjukkan akurasi prediksi rating yang baik (RMSE ≈ 0.8690) dan kualitas peringkat yang layak (P@10 ≈ 0.5656, R@10 ≈ 0.6668). CF lebih unggul dalam potensi *serendipity* dan tidak memerlukan metadata konten yang detail, namun CBF lebih mudah diinterpretasikan. "Lebih baik" akan tergantung pada tujuan spesifik (misalnya, akurasi prediksi rating vs. relevansi konten vs. penemuan baru).
 4.  **Faktor apa saja yang paling berpengaruh terhadap kualitas rekomendasi?**
     * **Jawaban:**
         * **Untuk CBF:** Kualitas dan kelengkapan `feature_soup` (yaitu, genre dan tag) sangat berpengaruh. Semakin deskriptif dan akurat fitur konten, semakin baik rekomendasinya. Teknik representasi fitur (TF-IDF) juga memainkan peran.
@@ -728,8 +744,8 @@ Model yang dievaluasi memberikan dampak signifikan terhadap pemahaman bisnis dan
 2.  **Melaksanakan pra-pemrosesan data:** **Tercapai.** Data telah dibersihkan dan ditransformasi, termasuk pembuatan `feature_soup` untuk CBF dan penyiapan data rating untuk CF.
 3.  **Mengimplementasikan model CBF (TF-IDF & Cosine Similarity):** **Tercapai.** Model CBF berhasil diimplementasikan, menghasilkan matriks fitur dan fungsi rekomendasi.
 4.  **Mengimplementasikan model CF (SVD & GridSearchCV):** **Tercapai.** Model CF SVD berhasil diimplementasikan, termasuk baseline dan versi yang di-tuning dengan `GridSearchCV`.
-5.  **Mengevaluasi kedua model:** **Tercapai.** CBF dievaluasi secara kualitatif dengan skor kemiripan. CF dievaluasi dengan RMSE, MAE, Precision@k, dan Recall@k.
-6.  **Menganalisis dan membandingkan hasil:** **Tercapai.** Perbandingan kinerja, kelebihan, dan kekurangan kedua model telah didiskusikan.
+5.  **Mengevaluasi kedua model:** **Tercapai.**  Kinerja model telah dievaluasi menggunakan metrik yang sesuai: CBF dievaluasi secara kuantitatif menggunakan metrik Precision berdasarkan relevansi genre. CF dievaluasi menggunakan metrik RMSE, MAE, Precision@k, dan Recall@k.
+6.  **Menganalisis dan membandingkan hasil:** **Tercapai.** Perbandingan kinerja, kelebihan, dan kekurangan kedua model telah diketahui.
 
 #### Dampak Pendekatan Solusi
 1.  **Eksplorasi dan Pemahaman Data:** Pendekatan EDA yang detail sangat berdampak pada kualitas data yang digunakan untuk modeling. Identifikasi `(no genres listed)`, pemahaman distribusi rating, dan *sparsity* data mengarahkan langkah pra-pemrosesan dan pemilihan model yang lebih tepat.
