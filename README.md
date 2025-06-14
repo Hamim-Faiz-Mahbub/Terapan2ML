@@ -376,6 +376,12 @@ Langkah pertama dalam implementasi CBF adalah mengubah fitur konten tekstual (`f
 * **Output Tahap Ini:** Pesan konfirmasi, jumlah total data rating yang akan digunakan (100.836), dan sampel `head(3)` dari `ratings_for_cf_df`.
 * **Hasil Akhir untuk CF:** DataFrame `ratings_for_cf_df` yang berisi interaksi pengguna-item-rating, siap untuk dimuat ke dalam format dataset `Surprise`.
 
+1. **Persiapan Data untuk Library `Surprise`:**
+     * Objek `Reader` dari `surprise` diinisialisasi dengan parameter `rating_scale=(0.5, 5.0)`. Ini memberitahu library tentang rentang nilai rating yang ada dalam dataset kita.
+     * Data dari DataFrame `ratings_for_cf_df` (yang berisi kolom `userId`, `movieId`, `rating`) dimuat ke dalam format dataset internal `Surprise` menggunakan fungsi `Dataset.load_from_df()`. Format ini diperlukan agar algoritma dari library `Surprise` dapat memproses data dengan benar.
+  2. **Pembagian Data:** Dataset `Surprise` yang telah dimuat kemudian dibagi menjadi data latih (`trainset`) dan data uji (`testset`). Dalam proyek ini, digunakan perbandingan 80% untuk data latih dan 20% untuk data uji, yang dilakukan menggunakan fungsi `surprise_train_test_split`. Parameter `random_state=42` digunakan untuk memastikan bahwa pembagian data bersifat deterministik dan dapat direproduksi setiap kali kode dijalankan.
+     * **Output Tahap Ini:** Pesan konfirmasi jumlah data dalam set pelatihan (80668) dan set pengujian (20168).
+  
 ### Pengecekan Nilai Hilang (Final)
 
 * **Tujuan:** Melakukan verifikasi akhir untuk memastikan tidak ada nilai `NaN` pada fitur-fitur kunci yang akan digunakan dalam pemodelan.
@@ -496,21 +502,15 @@ Ada dua jenis utama CF:
 * **Memory-Based CF:** Mencari pengguna (user-based) atau item (item-based) yang mirip berdasarkan pola rating dan kemudian membuat prediksi.
 * **Model-Based CF:** Membangun model prediktif dari data rating untuk memperkirakan rating pengguna terhadap item yang belum dinilai. **Singular Value Decomposition (SVD)** adalah salah satu teknik faktorisasi matriks yang populer untuk model-based CF. SVD bekerja dengan menguraikan matriks interaksi pengguna-item (matriks rating R yang berukuran m pengguna x n item) menjadi produk dari tiga matriks: $R \approx U \Sigma V^T$. Dalam konteks rekomendasi, varian SVD (seperti yang diimplementasikan di library `Surprise`) sering digunakan untuk mempelajari vektor faktor laten (fitur tersembunyi) untuk setiap pengguna (P) dan setiap item (Q). Rating prediksi $\hat{r}_{ui}$ untuk pengguna u$ dan item $i$ kemudian dihitung sebagai produk titik dari vektor faktor laten mereka: $\hat{r}_{ui} = q_i^T p_u$. Model ini dilatih dengan meminimalkan error prediksi pada rating yang diketahui.
 
-#### Implementasi: Persiapan Data dan Model SVD Baseline
+#### Implementasi: Model SVD Baseline
 
 
 
 * **Proses:**
-
-  1. **Persiapan Data untuk Library `Surprise`:**
-     * Objek `Reader` dari `surprise` diinisialisasi dengan parameter `rating_scale=(0.5, 5.0)`. Ini memberitahu library tentang rentang nilai rating yang ada dalam dataset kita.
-     * Data dari DataFrame `ratings_for_cf_df` (yang berisi kolom `userId`, `movieId`, `rating`) dimuat ke dalam format dataset internal `Surprise` menggunakan fungsi `Dataset.load_from_df()`. Format ini diperlukan agar algoritma dari library `Surprise` dapat memproses data dengan benar.
-  2. **Pembagian Data:** Dataset `Surprise` yang telah dimuat kemudian dibagi menjadi data latih (`trainset`) dan data uji (`testset`). Dalam proyek ini, digunakan perbandingan 80% untuk data latih dan 20% untuk data uji, yang dilakukan menggunakan fungsi `surprise_train_test_split`. Parameter `random_state=42` digunakan untuk memastikan bahwa pembagian data bersifat deterministik dan dapat direproduksi setiap kali kode dijalankan.
-     * **Output Tahap Ini:** Pesan konfirmasi jumlah data dalam set pelatihan (80668) dan set pengujian (20168).
-  3. **Inisialisasi dan Pelatihan Model SVD Baseline:**
+  1. **Inisialisasi dan Pelatihan Model SVD Baseline:**
      * Algoritma `SVD` dari `surprise` diinisialisasi sebagai `algo_svd_baseline`. Parameter yang digunakan pada tahap ini adalah parameter yang telah ditentukan sebagai parameter yang cukup baik sebagai titik awal: `n_factors=100` (jumlah faktor laten yang akan dipelajari), `n_epochs=30` (jumlah iterasi pelatihan), `lr_all=0.005` (laju pembelajaran untuk semua parameter), `reg_all=0.04` (koefisien regularisasi untuk semua parameter), dan `random_state=42` untuk reproduktifitas.
      * Model SVD baseline kemudian dilatih pada `trainset` yang telah dibuat menggunakan metode `algo_svd_baseline.fit(trainset)`. Selama proses `fit`, algoritma SVD akan mencoba menemukan vektor faktor laten untuk pengguna dan item yang paling baik merekonstruksi rating yang diketahui di `trainset`.
-  4. **Evaluasi Model Baseline:**
+  2. **Evaluasi Model Baseline:**
      * Setelah model dilatih, kemampuannya untuk memprediksi rating diuji pada `testset` (data yang belum pernah dilihat model selama pelatihan) menggunakan metode `algo_svd_baseline.test(testset)`. Ini menghasilkan daftar prediksi.
      * Kinerja model dievaluasi menggunakan metrik Root Mean Squared Error (RMSE) dan Mean Absolute Error (MAE). Fungsi `accuracy.rmse()` dan `accuracy.mae()` dari `surprise` digunakan untuk menghitung nilai-nilai ini berdasarkan prediksi yang dibuat pada `testset`.
 * **Output Sel :**
